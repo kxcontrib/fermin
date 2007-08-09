@@ -1,0 +1,90 @@
+Ocaml client for KDB+
+---------------------
+
+See ocaml.org for more information on the Ocaml programming language
+
+q.mli is the exported interface to use from Ocaml clients.
+
+Send comments and bug reports to Fermin Reig (fermin@xrnd.com)
+
+Compatibility
+-------------
+
+I have tested it with KDB+ 2.4t, Ocaml 3.09.2, linux kernel 2.6.18,
+AMD64. If it does not work in your platform, let me know
+(fermin@xrnd.com) and I might be able to help.
+
+How to build it
+---------------
+
+To use with the Ocaml bytecode compiler and interactive interpreter:
+
+ocamlc -c q.mli
+ocamlc -c q.ml
+ocamlc -c q_interface.c
+ocamlmklib -o q_ocaml c.o q_interface.o q.ml
+
+With the native-code Ocaml compiler
+
+ocamlopt -c q.mli
+ocamlopt -c q.ml
+ocamlopt -c q_interface.c
+
+As an option, uncomment the line
+// #define NDEBUG
+in q_interface.c to disable assertions
+
+How to use it
+-------------
+
+KDB+ server:
+
+rlwrap ./l64/q -p 5001
+
+Ocaml client. In the interactive interpreter:
+
+rlwrap ocaml bigarray.cma q_ocaml.cma
+        Objective Caml version 3.09.2
+
+# open Q;;
+# open Bigarray;;
+# let q_inst = q_connect "localhost"  5001;;
+val q_inst : Q.q_conn = <abstr>
+# q_eval_async q_inst "xs: til 10";;
+- : unit = ()
+# q_eval q_inst "xs";;
+- : Q.q_val = Q_v_int32 (<abstr>, A_none)
+# let (Q_v_int32 (ints, attrib)) = q_eval q_inst "xs";;
+Warning P: this pattern-matching is not exhaustive.
+...
+val ints : Q.int32_bigarray = <abstr>
+val attrib : Q.attrib = A_none
+# ints.{3};;
+- : int32 = 3l
+
+Implementation
+--------------
+
+The Ocaml client is built on top of the C client API.
+
+Limitations
+-----------
+
+It inherits all the limitations (and advantages) of KDB's C client
+interface.
+
+The current implementation of Ocaml (June 2007) supports arrays
+containing up to 2^22 - 1 (4194303) elements on 32-bit platforms and
+2^54 - 1 on 64-bit platforms.
+
+
+Sample errors
+-------------
+
+# let q_inst = q_connect "localhost"  5002;;
+Exception:
+Q.Q_connect "localhost:5002 host unknown or connection refused on port".
+
+# q_rpc q_inst "foo" Q_unit;;
+Exception: Failure "foo".
+
